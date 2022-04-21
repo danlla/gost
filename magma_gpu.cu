@@ -125,10 +125,25 @@ __global__ void decrypt_kernel(magma::block* data, size_t n, magma_keys k) {
 };
 
 
-static inline cudaError_t x_check(cudaError_t result, const char* file = "", int line = 0) {
+//static inline cudaError_t x_check(cudaError_t result, const char* file = "", int line = 0) {
+//	if (result != cudaSuccess)
+//	{
+//		std::cerr << file << " (line " << line << " ): " << cudaGetErrorString(result);
+//		exit(EXIT_FAILURE);
+//	}
+//	return result;
+//}
+
+static inline CUresult x_check(CUresult result, const char* file = "", int line = 0) {
 	if (result != cudaSuccess)
 	{
-		std::cerr << file << " (line " << line << " ): " << cudaGetErrorString(result);
+		const char* err_str = (char*)malloc(256);
+		const char** tmp = &err_str;
+		cuGetErrorString(result, tmp);
+		if (err_str == NULL)
+			std::cerr << "unknown error";
+		std::cerr << file << " (line " << line << " ): " << err_str;
+		free((void*)err_str);
 		exit(EXIT_FAILURE);
 	}
 	return result;
@@ -139,27 +154,27 @@ static inline cudaError_t x_check(cudaError_t result, const char* file = "", int
 void magma_gpu::encrypt(block* buf, size_t size) const
 {
 	block* data;
-	cuMemAlloc((CUdeviceptr*)&data, size * sizeof(block));
-	cuMemcpy((CUdeviceptr)data, (CUdeviceptr)buf, size * sizeof(block));
+	check(cuMemAlloc((CUdeviceptr*)&data, size * sizeof(block)));
+	check(cuMemcpy((CUdeviceptr)data, (CUdeviceptr)buf, size * sizeof(block)));
 	magma_keys k;
 	std::copy_n(this->keys, 8, k.keys);
 	encrypt_kernel <<<64, 128 >>> (data, size, k); //Instead of <<<10, 1024>> here must be something like <<<this->thread_blocks, this->block.size>>>
-	check(cudaDeviceSynchronize());
-	cuMemcpy((CUdeviceptr)buf, (CUdeviceptr)data, size * sizeof(block));
-	cuMemFree((CUdeviceptr)data);
+	check(cuCtxSynchronize());
+	check(cuMemcpy((CUdeviceptr)buf, (CUdeviceptr)data, size * sizeof(block)));
+	check(cuMemFree((CUdeviceptr)data));
 }
 
 void magma_gpu::decrypt(block* buf, size_t size) const
 {
 	block* data;
-	cuMemAlloc((CUdeviceptr*)&data, size * sizeof(block));
-	cuMemcpy((CUdeviceptr)data, (CUdeviceptr)buf, size * sizeof(block));
+	check(cuMemAlloc((CUdeviceptr*)&data, size * sizeof(block)));
+	check(cuMemcpy((CUdeviceptr)data, (CUdeviceptr)buf, size * sizeof(block)));
 	magma_keys k;
 	std::copy_n(this->keys, 8, k.keys);
 	decrypt_kernel <<<64, 128 >>> (data, size, k); //Instead of <<<10, 1024>> here must be something like <<<this->thread_blocks, this->block.size>>>
-	check(cudaDeviceSynchronize());
-	cuMemcpy((CUdeviceptr)buf, (CUdeviceptr)data, size * sizeof(block));
-	cuMemFree((CUdeviceptr)data);
+	check(cuCtxSynchronize());
+	check(cuMemcpy((CUdeviceptr)buf, (CUdeviceptr)data, size * sizeof(block)));
+	check(cuMemFree((CUdeviceptr)data));
 }
 
 magma_gpu::magma_gpu(const std::array<unsigned int, 8>& key) : magma(key) {
