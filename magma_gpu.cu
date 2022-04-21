@@ -149,8 +149,12 @@ static inline CUresult x_check(CUresult result, const char* file = "", int line 
 		const char* err_str = (char*)malloc(256);
 		const char** tmp = &err_str;
 		cuGetErrorString(result, tmp);
-		if (err_str == NULL)
+		if (tmp == NULL)
+		{
 			std::cerr << "unknown error";
+			free((void*)err_str);
+			exit(EXIT_FAILURE);
+		}
 		std::cerr << file << " (line " << line << " ): " << err_str;
 		free((void*)err_str);
 		exit(EXIT_FAILURE);
