@@ -4,6 +4,15 @@
 #include <stdexcept>
 #include <string>
 #include <iostream>
+#include <device_launch_parameters.h>
+#include <device_functions.h>
+
+#pragma once
+#ifdef __INTELLISENSE__
+void __syncthreads();
+#endif
+
+
 
 struct magma_keys {
 	unsigned int keys[8];
