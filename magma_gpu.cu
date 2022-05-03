@@ -146,7 +146,7 @@ __global__ void decrypt_kernel(magma::block* data, size_t n, magma_keys k) {
 static inline CUresult x_check(CUresult result, const char* file = "", int line = 0) {
 	if (result != cudaSuccess)
 	{
-		const char* err_str = (char*)malloc(256);
+		char* err_str = (char*)malloc(256);
 		const char** tmp = &err_str;
 		cuGetErrorString(result, tmp);
 		if (tmp == NULL)
