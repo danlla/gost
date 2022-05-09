@@ -81,11 +81,13 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="kuznechik.cu" />
     <CudaCompile Include="magma.cu" />
     <CudaCompile Include="magma_gpu.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="argparse.hpp" />
+    <ClInclude Include="kuznechik.cuh" />
     <ClInclude Include="magma.cuh" />
     <ClInclude Include="magma_gpu.cuh" />
   </ItemGroup>
