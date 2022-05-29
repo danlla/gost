@@ -3,10 +3,14 @@
 #include <random>
 #include "magma.cuh"
 #include "magma_gpu.cuh"
+#include "kuznechik.cuh"
 #include <fstream>
+#include <utility>
 #include "argparse.hpp"
 
 void bench(const magma& m, size_t n, const std::unique_ptr<magma::block[]>& message);
+
+void benchk(const kuznechik& m, size_t n, const std::unique_ptr<kuznechik::block[]>& message);
 
 void encrypt_file(const magma& m, const char* input_file, const char* output_file, size_t buf_size);
 
@@ -17,6 +21,7 @@ int main(int argc, char* argv[])
 
 
     for (size_t i = 0; i < argc; ++i)
+    {
         if (!(strcmp(argv[i], "-b") && strcmp(argv[i], "--bench")))
         {
             std::cout << "Testing: 128mb" << std::endl;
@@ -40,9 +45,40 @@ int main(int argc, char* argv[])
             bench(m2, n, message);
             return 0;
         }
+        if (!(strcmp(argv[i], "-kuz")))
+        {
+            std::pair<unsigned long long, unsigned long long> keys[10];
+            for (int i = 0; i < 10; ++i)
+            {
+                keys[i].first = 0xccddeeff8899aabb;
+                keys[i].second = 0xf3f2f1f0f7f6f5f4;
+            }
+
+            size_t n = 128 * 1024 / sizeof(kuznechik::block);
+            auto message = std::make_unique<kuznechik::block[]>(n);
+            std::mt19937 eng;
+            eng.seed(15);
+            for (size_t i = 0; i < n; ++i)
+            {
+                message[i].uint[0] = eng();
+                message[i].uint[1] = eng();
+                message[i].uint[2] = eng();
+                message[i].uint[3] = eng();
+            }
+
+            kuznechik k(keys);
+            benchk(k, n, message);
+            return 0;
+        }
+    }
+
 
 
     argparse::ArgumentParser program("magma", "1.0.0");
+    program.add_argument("-kuz", "--kuznechik")
+        .help("use kuznechik")
+        .default_value(false)
+        .implicit_value(true);
     program.add_argument("-e", "--encrypt")
         .help("encrypt data")
         .default_value(false)
@@ -78,6 +114,7 @@ int main(int argc, char* argv[])
     }
 
     std::array<unsigned int, 8> keys;
+
 
     if (program["--decrypt"] == false && program["--encrypt"] == false)
     {
@@ -223,6 +260,30 @@ void bench(const magma& m, size_t n, const std::unique_ptr<magma::block[]>& mess
     for (int64_t i = 0; i < n; ++i)
     {
         if (message[i].ull != tmp[i].ull)
+        {
+            std::cout << "doesn't work :c";
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    auto time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    std::cout << "works :)" << std::endl;
+    std::cout << std::dec << time << "ms" << std::endl;
+}
+
+void benchk(const kuznechik& m, size_t n, const std::unique_ptr<kuznechik::block[]>& message) {
+    auto tmp = std::make_unique<kuznechik::block[]>(n);
+    std::copy_n(message.get(), n, tmp.get());
+    auto start = std::chrono::high_resolution_clock::now();
+    m.encrypt(message.get(), n);
+    auto end = std::chrono::high_resolution_clock::now();
+    m.encrypt(message.get(), n);
+
+
+#pragma omp parallel for //faster compare
+    for (int64_t i = 0; i < n; ++i)
+    {
+        if (message[i].ull[0] != tmp[i].ull[0] || message[i].ull[1] != tmp[i].ull[1])
         {
             std::cout << "doesn't work :c";
             exit(EXIT_FAILURE);

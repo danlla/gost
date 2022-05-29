@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <array>
+#include <utility>
 #include "cuda_runtime.h"
 class kuznechik
 {
@@ -13,11 +14,9 @@ public:
 	};
 
 protected:
-	unsigned int keys[8];
-	__host__ void encrypt_block(block& src) const;
-	__host__ void decrypt_block(block& src) const;
+	block keys[10];
+	__host__ void encrypt_block(block& src, int index) const;
 public:
-	kuznechik(const std::array<unsigned int, 8>& key);
+	kuznechik(const std::pair<unsigned long long, unsigned long long> key[10]);
 	virtual void encrypt(block* buf, size_t n) const;
-	virtual void decrypt(block* buf, size_t n) const;
 };
