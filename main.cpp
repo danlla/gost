@@ -1,21 +1,18 @@
 #include <iostream>
 #include <chrono>
 #include <random>
+#include <fstream>
 #include "magma.cuh"
 #include "magma_gpu.cuh"
 #include "kuznechik.cuh"
 #include "kuznechik_gpu.cuh"
-#include <fstream>
 #include <utility>
 #include "argparse.hpp"
+#include "enc_dec_file.h"
 
 void bench(const magma& m, size_t n, const std::unique_ptr<magma::block[]>& message);
 
-void benchk(const kuznechik& m, size_t n, const std::unique_ptr<kuznechik::block[]>& message);
-
-void encrypt_file(const magma& m, const char* input_file, const char* output_file, size_t buf_size);
-
-void decrypt_file(const magma& m, const char* input_file, const char* output_file, size_t buf_size);
+void bench_kuz(const kuznechik& m, size_t n, const std::unique_ptr<kuznechik::block[]>& message);
 
 int main(int argc, char* argv[])
 {
@@ -25,6 +22,35 @@ int main(int argc, char* argv[])
     {
         if (!(strcmp(argv[i], "-b") && strcmp(argv[i], "--bench")))
         {
+            for (size_t i = 0; i < argc; ++i)
+            {
+                if (!strcmp(argv[i], "--kuz"))
+                {
+                    std::cout << "Testing: 128mb" << std::endl;
+                    std::array<unsigned int, 8> keys = { 0xccddeeff, 0x8899aabb, 0x44556677, 0x00112233, 0xf3f2f1f0, 0xf7f6f5f4, 0xfbfaf9f8, 0xfffefdfc };
+                    size_t n = 48 * 1024*1024 / sizeof(kuznechik::block);
+                    auto message = std::make_unique<kuznechik::block[]>(n);
+                    std::mt19937 eng;
+                    eng.seed(15);
+                    for (size_t i = 0; i < n; ++i)
+                    {
+                        message[i].uint[0] = eng();
+                        message[i].uint[1] = eng();
+                        message[i].uint[2] = eng();
+                        message[i].uint[3] = eng();
+                    }
+
+                    std::cout << "Kuznechik" << std::endl;
+                    std::cout << "CPU" << std::endl;
+                    kuznechik k1(keys);
+                    bench_kuz(k1, n, message);
+
+                    std::cout << "GPU" << std::endl;
+                    kuznechik_gpu k2(keys);
+                    bench_kuz(k2, n, message);
+                    return 0;
+                }
+            }
             std::cout << "Testing: 128mb" << std::endl;
             std::array<unsigned int, 8> keys = { 0xccddeeff, 0x8899aabb, 0x44556677, 0x00112233, 0xf3f2f1f0, 0xf7f6f5f4, 0xfbfaf9f8, 0xfffefdfc };
             size_t n = 128 * 1024 * 1024 / sizeof(magma::block);
@@ -37,6 +63,7 @@ int main(int argc, char* argv[])
                 message[i].uint[1] = eng();
             }
 
+            std::cout << "Magma" << std::endl;
             std::cout << "CPU" << std::endl;
             magma m1(keys);
             bench(m1, n, message);
@@ -44,31 +71,6 @@ int main(int argc, char* argv[])
             std::cout << "GPU" << std::endl;
             magma_gpu m2(keys);
             bench(m2, n, message);
-            return 0;
-        }
-        if (!(strcmp(argv[i], "-kuz")))
-        {
-            std::pair<unsigned long long, unsigned long long> keys[10];
-            for (int i = 0; i < 10; ++i)
-            {
-                keys[i].first = 0xccddeeff8899aabb;
-                keys[i].second = 0xf3f2f1f0f7f6f5f4;
-            }
-
-            size_t n = 128 * 1024 / sizeof(kuznechik::block);
-            auto message = std::make_unique<kuznechik::block[]>(n);
-            std::mt19937 eng;
-            eng.seed(15);
-            for (size_t i = 0; i < n; ++i)
-            {
-                message[i].uint[0] = eng();
-                message[i].uint[1] = eng();
-                message[i].uint[2] = eng();
-                message[i].uint[3] = eng();
-            }
-
-            kuznechik_gpu k(keys);
-            benchk(k, n, message);
             return 0;
         }
     }
@@ -171,81 +173,20 @@ int main(int argc, char* argv[])
         }
         std::cout << "encrypt";
         std::cout << " from " << program.get<std::string>("input file") << " to " << program.get<std::string>("output file") << std::endl;
-        magma_gpu m(keys);
-        encrypt_file(m, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), program.get<int>("--size") / sizeof(magma::block));
+        //magma_gpu m(keys);
+        kuznechik k(keys);
+        encrypt_file_kuz(k, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), program.get<int>("--size") / sizeof(magma::block));
     }
     if (program["--decrypt"] == true) {
         std::cout << "decrypt";
         std::cout << " from " << program.get<std::string>("input file") << " to " << program.get<std::string>("output file") << std::endl;
-        magma_gpu m(keys);
-        decrypt_file(m, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), program.get<int>("--size") / sizeof(magma::block));
+        //magma_gpu m(keys);
+        kuznechik k(keys);
+        decrypt_file_kuz(k, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), program.get<int>("--size") / sizeof(magma::block));
     }
 
 }
 
-int addition(magma::block* buf, size_t byte)
-{
-    if (byte % 8 == 0)
-    {
-        for (int i = 0; i < 8; ++i)
-            buf[byte / 8].c[i] = 8;
-    }
-    else
-    {
-        int dif = 8 - byte % 8;
-        for (int i = 8 - dif; i < 8; ++i)
-            buf[byte / 8].c[i] = dif;
-    }
-    return 1;
-}
-
-int cut_addition(const magma::block& b)
-{
-    return b.c[7];
-}
-
-void encrypt_file(const magma& m, const char* input_file, const char* output_file, size_t buf_size)
-{
-    std::ifstream ifile(input_file, std::ios::binary);
-    std::ofstream ofile(output_file, std::ios::binary);
-    magma::block* buf = new magma::block[buf_size + 1];
-    size_t count = 0;
-    while (true)
-    {
-        ifile.read((char*)buf, buf_size * sizeof(magma::block));
-        count = ifile.gcount();
-        if (!ifile)
-            break;
-        m.encrypt(buf, count / 8);
-        ofile.write((char*)buf, (count / 8) * sizeof(magma::block));
-    }
-    int add = addition(buf, count);
-    m.encrypt(buf, count / 8 + add);
-    ofile.write((char*)buf, (count / 8 + add) * sizeof(magma::block));
-    delete[] buf;
-}
-
-void decrypt_file(const magma& m, const char* input_file, const char* output_file, size_t buf_size)
-{
-    std::ifstream ifile(input_file, std::ios::binary);
-    std::ofstream ofile(output_file, std::ios::binary);
-    magma::block* buf = new magma::block[buf_size + 1];
-    size_t count = 0;
-    while (true)
-    {
-        ifile.read((char*)buf, buf_size * sizeof(magma::block));
-        count = ifile.gcount();
-        if (!ifile)
-            break;
-        m.decrypt(buf, count / 8);
-        ofile.write((char*)buf, (count / 8) * sizeof(magma::block));
-    }
-    int extra = 0;
-    m.decrypt(buf, count / 8);
-    extra = cut_addition(buf[count / 8 - 1]);
-    ofile.write((char*)buf, (count / 8) * sizeof(magma::block) - extra);
-    delete[] buf;
-}
 
 /*one task - one function*/
 void bench(const magma& m, size_t n, const std::unique_ptr<magma::block[]>& message) {
@@ -272,7 +213,7 @@ void bench(const magma& m, size_t n, const std::unique_ptr<magma::block[]>& mess
     std::cout << std::dec << time << "ms" << std::endl;
 }
 
-void benchk(const kuznechik& m, size_t n, const std::unique_ptr<kuznechik::block[]>& message) {
+void bench_kuz(const kuznechik& m, size_t n, const std::unique_ptr<kuznechik::block[]>& message) {
     auto tmp = std::make_unique<kuznechik::block[]>(n);
     std::copy_n(message.get(), n, tmp.get());
     auto start = std::chrono::high_resolution_clock::now();
