@@ -605,7 +605,7 @@ __global__ void encrypt_kernel(kuznechik::block* data, size_t n, kuznechik_keys 
 			{
 				auto tmp = S[src.c[i]];
 				auto tmpl1 = tmp & 0x0F;
-				auto tmpl2 = tmp & 0xF0;
+				auto tmpl2 = tmp & 0xF0 >> 4;
 				src.ull[0] ^= L1[i][tmpl1][0];
 				src.ull[0] ^= L2[i][tmpl2][0];
 
