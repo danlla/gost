@@ -17,6 +17,6 @@ protected:
 	block keys[10];
 	__host__ void encrypt_block(block& src, int index) const;
 public:
-	kuznechik(const std::pair<unsigned long long, unsigned long long> key[10]);
+	kuznechik(const std::array<unsigned int, 8>& key);
 	virtual void encrypt(block* buf, size_t n) const;
 };

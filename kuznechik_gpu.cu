@@ -593,9 +593,6 @@ __global__ void encrypt_kernel(kuznechik::block* data, size_t n, kuznechik_keys 
 
 	for (int k = tid; k < n; k += tcnt)
 	{
-
-		if (threadIdx.x == 0 && blockIdx.x == 0)
-			printf("%llu", data[k].ull);
 		auto src = keys.block[k % 10];
 		for (int j = 0; j < 10; ++j)
 		{
@@ -651,14 +648,14 @@ void kuznechik_gpu::encrypt(block* buf, size_t size) const
 		k.block->ull[0] = this->keys->ull[0];
 		k.block->ull[1] = this->keys->ull[1];
 	}
-	encrypt_kernel << <64, 64 >> > (data, size, k); //Instead of <<<10, 1024>> here must be something like <<<this->thread_blocks, this->block.size>>>
+	encrypt_kernel << <64, 128 >> > (data, size, k); //Instead of <<<10, 1024>> here must be something like <<<this->thread_blocks, this->block.size>>>
 
 	check(cuCtxSynchronize());
 	check(cuMemcpy((CUdeviceptr)buf, (CUdeviceptr)data, size * sizeof(block)));
 	check(cuMemFree((CUdeviceptr)data));
 }
 
-kuznechik_gpu::kuznechik_gpu(const std::pair<unsigned long long, unsigned long long> key[10]) : kuznechik(key) {
+kuznechik_gpu::kuznechik_gpu(const std::array<unsigned int, 8>& key) : kuznechik(key) {
 	void* t;
 	cudaMalloc(&t, 1);
 	cudaFree(t);
