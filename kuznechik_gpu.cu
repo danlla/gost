@@ -589,8 +589,13 @@ __global__ void encrypt_kernel(kuznechik::block* data, size_t n, kuznechik_keys 
 				}
 	}
 
+	__syncthreads();
+
 	for (int k = tid; k < n; k += tcnt)
 	{
+
+		if (threadIdx.x == 0 && blockIdx.x == 0)
+			printf("%llu", data[k].ull);
 		auto src = keys.block[k % 10];
 		for (int j = 0; j < 10; ++j)
 		{
