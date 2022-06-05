@@ -4,6 +4,7 @@
 #include "magma.cuh"
 #include "magma_gpu.cuh"
 #include "kuznechik.cuh"
+#include "kuznechik_gpu.cuh"
 #include <fstream>
 #include <utility>
 #include "argparse.hpp"
@@ -66,7 +67,7 @@ int main(int argc, char* argv[])
                 message[i].uint[3] = eng();
             }
 
-            kuznechik k(keys);
+            kuznechik_gpu k(keys);
             benchk(k, n, message);
             return 0;
         }
