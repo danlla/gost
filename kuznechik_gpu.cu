@@ -619,9 +619,8 @@ static inline CUresult x_check(CUresult result, const char* file = "", int line 
 	if (result != cudaSuccess)
 	{
 		const char* err_str = (char*)malloc(256);
-		const char** tmp = &err_str;
-		cuGetErrorString(result, tmp);
-		if (tmp == NULL)
+		cuGetErrorString(result, &err_str);
+		if (*err_str == NULL)
 		{
 			std::cerr << "unknown error";
 			free((void*)err_str);
@@ -636,6 +635,13 @@ static inline CUresult x_check(CUresult result, const char* file = "", int line 
 
 #define check(x) x_check((x), __FILE__, __LINE__)
 
+//struct param
+//{
+//	kuznechik::block* data;
+//	size_t size;
+//	kuznechik_keys k;
+//};
+
 void kuznechik_gpu::encrypt(block* buf, size_t size) const
 {
 	block* data;
@@ -649,7 +655,24 @@ void kuznechik_gpu::encrypt(block* buf, size_t size) const
 		k.block->ull[1] = this->keys->ull[1];
 	}
 	encrypt_kernel << <64, 128 >> > (data, size, k); //Instead of <<<10, 1024>> here must be something like <<<this->thread_blocks, this->block.size>>>
-
+	///*CUdevice device = 0;
+	//int max_grid_x;
+	//int max_grid_y;
+	//int max_grid_z;
+	//int max_block_x;
+	//int max_block_y;
+	//int max_block_z;
+	//check(cuDeviceGetAttribute(&max_grid_x, CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_X, device));
+	//check(cuDeviceGetAttribute(&max_grid_y, CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Y, device));
+	//check(cuDeviceGetAttribute(&max_grid_z, CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Z, device));
+	//check(cuDeviceGetAttribute(&max_block_x, CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X, device));
+	//check(cuDeviceGetAttribute(&max_block_y, CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X, device));
+	//check(cuDeviceGetAttribute(&max_block_z, CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X, device));*/
+	//CUfunction f = CUfunction (*encrypt_kernel);
+	////param p = { data, size, k };
+	////void* args = { &p };
+	//void* args[3] = { data, &size, &k };
+	//check(cuLaunchKernel(f, 128, 1, 1, 64, 1, 1, 1440, 0, args, NULL));
 	check(cuCtxSynchronize());
 	check(cuMemcpy((CUdeviceptr)buf, (CUdeviceptr)data, size * sizeof(block)));
 	check(cuMemFree((CUdeviceptr)data));
