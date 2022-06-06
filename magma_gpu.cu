@@ -147,9 +147,8 @@ static inline CUresult x_check(CUresult result, const char* file = "", int line 
 	if (result != cudaSuccess)
 	{
 		const char* err_str = (char*)malloc(256);
-		const char** tmp = &err_str;
-		cuGetErrorString(result, tmp);
-		if (tmp == NULL)
+		cuGetErrorString(result, &tmp);
+		if (&err_str == NULL)
 		{
 			std::cerr << "unknown error";
 			free((void*)err_str);
