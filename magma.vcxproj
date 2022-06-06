@@ -58,6 +58,7 @@
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
+      <MaxRegCount />
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -82,16 +83,20 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <CudaCompile Include="kuznechik.cu" />
+    <CudaCompile Include="kuznechik_gpu.cu" />
     <CudaCompile Include="magma.cu" />
     <CudaCompile Include="magma_gpu.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="argparse.hpp" />
+    <ClInclude Include="enc_dec_file.h" />
     <ClInclude Include="kuznechik.cuh" />
+    <ClInclude Include="kuznechik_gpu.cuh" />
     <ClInclude Include="magma.cuh" />
     <ClInclude Include="magma_gpu.cuh" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="enc_dec_file.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
