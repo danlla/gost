@@ -124,15 +124,6 @@ int main(int argc, char* argv[])
         std::cout << "You need choose encrypt or decrypt";
         exit(EXIT_FAILURE);
     }
-    /*if (program.present("-p").has_value())
-    {
-        if (program.present("-r").has_value())
-        {
-            std::cout << "Only password or random";
-            exit(EXIT_FAILURE);
-        }
-        std::cout << program.present("-p").value() << std::endl;
-    }*/
     else if (program.present("-r").has_value())
     {
         if (program["--decrypt"] == true)
@@ -173,22 +164,39 @@ int main(int argc, char* argv[])
         }
         std::cout << "encrypt";
         std::cout << " from " << program.get<std::string>("input file") << " to " << program.get<std::string>("output file") << std::endl;
-        //magma_gpu m(keys);
-        kuznechik k(keys);
-        encrypt_file_kuz(k, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), program.get<int>("--size") / sizeof(magma::block));
+        if (program["--kuznechik"] == true)
+        {
+            std::cout << "kuznechik" << std::endl;
+            kuznechik k(keys);
+            encrypt_file_kuz(k, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), program.get<int>("--size") / sizeof(kuznechik::block));
+        }
+        else
+        {
+            std::cout << "magma" << std::endl;
+            magma_gpu m(keys);
+            encrypt_file(m, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), program.get<int>("--size") / sizeof(magma::block));
+        }
     }
     if (program["--decrypt"] == true) {
         std::cout << "decrypt";
         std::cout << " from " << program.get<std::string>("input file") << " to " << program.get<std::string>("output file") << std::endl;
-        //magma_gpu m(keys);
-        kuznechik k(keys);
-        decrypt_file_kuz(k, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), program.get<int>("--size") / sizeof(magma::block));
+        if (program["--kuznechik"] == true)
+        {
+            std::cout << "kuznechik" << std::endl;
+            kuznechik k(keys);
+            decrypt_file_kuz(k, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), program.get<int>("--size") / sizeof(kuznechik::block));
+        }
+        else
+        {
+            std::cout << "magma" << std::endl;
+            magma_gpu m(keys);
+            decrypt_file(m, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), program.get<int>("--size") / sizeof(magma::block));
+        }
     }
 
 }
 
 
-/*one task - one function*/
 void bench(const magma& m, size_t n, const std::unique_ptr<magma::block[]>& message) {
     auto tmp = std::make_unique<magma::block[]>(n);
     std::copy_n(message.get(), n, tmp.get());
@@ -198,7 +206,7 @@ void bench(const magma& m, size_t n, const std::unique_ptr<magma::block[]>& mess
     m.decrypt(message.get(), n);
 
 
-#pragma omp parallel for //faster compare
+#pragma omp parallel for
     for (int64_t i = 0; i < n; ++i)
     {
         if (message[i].ull != tmp[i].ull)
@@ -222,7 +230,7 @@ void bench_kuz(const kuznechik& m, size_t n, const std::unique_ptr<kuznechik::bl
     m.encrypt(message.get(), n);
 
 
-#pragma omp parallel for //faster compare
+#pragma omp parallel for
     for (int64_t i = 0; i < n; ++i)
     {
         if (message[i].ull[0] != tmp[i].ull[0] || message[i].ull[1] != tmp[i].ull[1])
