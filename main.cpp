@@ -26,9 +26,9 @@ int main(int argc, char* argv[])
             {
                 if (!strcmp(argv[i], "--kuz"))
                 {
-                    std::cout << "Testing: 40mb" << std::endl;
+                    std::cout << "Testing: 128mb" << std::endl;
                     std::array<unsigned int, 8> keys = { 0xccddeeff, 0x8899aabb, 0x44556677, 0x00112233, 0xf3f2f1f0, 0xf7f6f5f4, 0xfbfaf9f8, 0xfffefdfc };
-                    size_t n = 40 * 1024*1024 / sizeof(kuznechik::block);
+                    size_t n = 128 * 1024*1024 / sizeof(kuznechik::block);
                     auto message = std::make_unique<kuznechik::block[]>(n);
                     std::mt19937 eng;
                     eng.seed(15);
@@ -51,9 +51,9 @@ int main(int argc, char* argv[])
                     return 0;
                 }
             }
-            std::cout << "Testing: 40mb" << std::endl;
+            std::cout << "Testing: 128mb" << std::endl;
             std::array<unsigned int, 8> keys = { 0xccddeeff, 0x8899aabb, 0x44556677, 0x00112233, 0xf3f2f1f0, 0xf7f6f5f4, 0xfbfaf9f8, 0xfffefdfc };
-            size_t n = 40 * 1024 * 1024 / sizeof(magma::block);
+            size_t n = 128 * 1024 * 1024 / sizeof(magma::block);
             auto message = std::make_unique<magma::block[]>(n);
             std::mt19937 eng;
             eng.seed(15);
