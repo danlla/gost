@@ -170,7 +170,7 @@ void magma_gpu::encrypt(block* buf, size_t size) const
 	check(cuMemcpy((CUdeviceptr)data, (CUdeviceptr)buf, size * sizeof(block)));
 	magma_keys k;
 	std::copy_n(this->keys, 8, k.keys);
-	encrypt_kernel <<<64, 128 >>> (data, size, k); //Instead of <<<10, 1024>> here must be something like <<<this->thread_blocks, this->block.size>>>
+	encrypt_kernel << <10, 1024 >> > (data, size, k);
 	check(cuCtxSynchronize());
 	check(cuMemcpy((CUdeviceptr)buf, (CUdeviceptr)data, size * sizeof(block)));
 	check(cuMemFree((CUdeviceptr)data));
@@ -183,13 +183,14 @@ void magma_gpu::decrypt(block* buf, size_t size) const
 	check(cuMemcpy((CUdeviceptr)data, (CUdeviceptr)buf, size * sizeof(block)));
 	magma_keys k;
 	std::copy_n(this->keys, 8, k.keys);
-	decrypt_kernel <<<64, 128 >>> (data, size, k); //Instead of <<<10, 1024>> here must be something like <<<this->thread_blocks, this->block.size>>>
+	decrypt_kernel << <10, 1024 >> > (data, size, k);
 	check(cuCtxSynchronize());
 	check(cuMemcpy((CUdeviceptr)buf, (CUdeviceptr)data, size * sizeof(block)));
 	check(cuMemFree((CUdeviceptr)data));
 }
 
-magma_gpu::magma_gpu(const std::array<unsigned int, 8>& key) : magma(key) {
+magma_gpu::magma_gpu(const std::array<unsigned int, 8>& key) : magma(key)
+{
 	void* t;
 	cudaMalloc(&t, 1);
 	cudaFree(t);
