@@ -133,16 +133,6 @@ __global__ void decrypt_kernel(magma::block* data, size_t n, magma_keys k) {
 	}
 };
 
-
-//static inline cudaError_t x_check(cudaError_t result, const char* file = "", int line = 0) {
-//	if (result != cudaSuccess)
-//	{
-//		std::cerr << file << " (line " << line << " ): " << cudaGetErrorString(result);
-//		exit(EXIT_FAILURE);
-//	}
-//	return result;
-//}
-
 static inline CUresult x_check(CUresult result, const char* file = "", int line = 0) {
 	if (result != cudaSuccess)
 	{

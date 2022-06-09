@@ -635,12 +635,6 @@ static inline CUresult x_check(CUresult result, const char* file = "", int line 
 
 #define check(x) x_check((x), __FILE__, __LINE__)
 
-//struct param
-//{
-//	kuznechik::block* data;
-//	size_t size;
-//	kuznechik_keys k;
-//};
 
 void kuznechik_gpu::encrypt(block* buf, size_t size) const
 {
@@ -648,7 +642,6 @@ void kuznechik_gpu::encrypt(block* buf, size_t size) const
 	check(cuMemAlloc((CUdeviceptr*)&data, size * sizeof(block)));
 	check(cuMemcpy((CUdeviceptr)data, (CUdeviceptr)buf, size * sizeof(block)));
 	kuznechik_keys k;
-	//std::copy_n(this->keys, 8, k);
 	for (int i = 0; i < 10; ++i)
 	{
 		k.block->ull[0] = this->keys->ull[0];
