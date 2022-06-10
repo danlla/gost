@@ -1,15 +1,6 @@
 #include "magma.cuh"
 #include <memory>
-#include <stdio.h>
 
-
-
-/*
- * this is a quite common thing in CUDA
- * __CUDA_ARCH__ is defined when compiling the device code and undefined when compiling the host code
- * this allows to create 2 different variables (or even functions and classes) with the same name
- * one for device and one for host
- * */
 
 constexpr unsigned char swap_table[4][256] =
 {
@@ -21,8 +12,6 @@ constexpr unsigned char swap_table[4][256] =
 
 void magma::encrypt_block(block& src2) const
 {
-	/*if (threadIdx.x == 0 && blockIdx.x == 0)
-		printf("%llu", src.ull);*/
 	auto src = src2;
 	for (size_t i = 0; i < 31; ++i)
 	{
@@ -86,7 +75,7 @@ void magma::decrypt_block(block& src) const
 
 magma::magma(const std::array<unsigned int, 8>& key)
 {
-	for (size_t i = 0; i < 8; ++i) // std::copy
+	for (size_t i = 0; i < 8; ++i)
 	{
 		keys[i] = key[i];
 	}
@@ -95,13 +84,13 @@ magma::magma(const std::array<unsigned int, 8>& key)
 void magma::encrypt(block* buf, size_t n) const
 {
 #pragma omp parallel for
-	for (int64_t i = 0; i < n; ++i)
+	for (int64_t i = 0; i < (int64_t)n; ++i)
 		encrypt_block(buf[i]);
 }
 
 void magma::decrypt(block* buf, size_t n) const
 {
 #pragma omp parallel for
-	for (int64_t i = 0; i < n; ++i)
+	for (int64_t i = 0; i < (int64_t)n; ++i)
 		decrypt_block(buf[i]);
 }

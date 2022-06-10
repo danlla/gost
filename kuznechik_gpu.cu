@@ -1,11 +1,8 @@
 #include "kuznechik_gpu.cuh"
 #include "cuda.h"
-#include "cuda_runtime.h"
 #include <stdexcept>
-#include <string>
 #include <iostream>
 #include <device_launch_parameters.h>
-#include <device_functions.h>
 
 #pragma once
 #ifdef __INTELLISENSE__
@@ -564,12 +561,12 @@ const __device__ unsigned long long _l2[16][16][2] =
 {3885311620525670774, 17332755300272562187}},
 };
 
-__global__ void encrypt_kernel(kuznechik::block* data, size_t n, kuznechik_keys k)
+extern "C" __global__ void encrypt_kernel_kuz(kuznechik::block * data, size_t n, kuznechik_keys k)
 {
 	auto tid = threadIdx.x + blockIdx.x * blockDim.x;
 	auto tcnt = blockDim.x * gridDim.x;
 
-	__shared__ unsigned int S[256];
+	__shared__ unsigned char S[256];
 	__shared__ unsigned long long L1[16][16][2];
 	__shared__ unsigned long long L2[16][16][2];
 	__shared__ kuznechik_keys keys;
@@ -580,8 +577,8 @@ __global__ void encrypt_kernel(kuznechik::block* data, size_t n, kuznechik_keys 
 		for (int i = 0; i < 256; ++i)
 			S[i] = _s[i];
 
-		for(int i = 0; i < 16; ++i)
-			for(int j = 0; j < 16; ++j)
+		for (int i = 0; i < 16; ++i)
+			for (int j = 0; j < 16; ++j)
 				for (int q = 0; q < 2; ++q)
 				{
 					L1[i][j][q] = _l1[i][j][q];
@@ -647,15 +644,34 @@ void kuznechik_gpu::encrypt(block* buf, size_t size) const
 		k.block->ull[0] = this->keys->ull[0];
 		k.block->ull[1] = this->keys->ull[1];
 	}
-	encrypt_kernel << <10, 1024 >> > (data, size, k);
+
+	CUmodule module;
+	CUfunction function;
+
+	check(cuModuleLoad(&module, "\\x64\\Release\\kuznechik_gpu.ptx"));
+	check(cuModuleGetFunction(&function, module, "encrypt_kernel_kuz"));
+
+	void* args[3] = { &data, &size, &k };
+	check(cuLaunchKernel(function, 10, 1, 1, 1024, 1, 1, 9000, 0, args, 0));
 	check(cuCtxSynchronize());
 	check(cuMemcpy((CUdeviceptr)buf, (CUdeviceptr)data, size * sizeof(block)));
 	check(cuMemFree((CUdeviceptr)data));
 }
 
+static CUcontext context;
+
 kuznechik_gpu::kuznechik_gpu(const std::array<unsigned int, 8>& key) : kuznechik(key)
 {
-	void* t;
-	cudaMalloc(&t, 1);
-	cudaFree(t);
+
+	check(cuInit(0));
+
+	CUdevice device;
+	check(cuDeviceGet(&device, 0));
+
+	check(cuCtxCreate(&context, 0, device));
+}
+
+kuznechik_gpu::~kuznechik_gpu()
+{
+	check(cuCtxDestroy(context));
 }

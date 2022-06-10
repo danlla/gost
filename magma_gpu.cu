@@ -1,11 +1,8 @@
 #include "magma_gpu.cuh"
 #include "cuda.h"
-#include "cuda_runtime.h"
 #include <stdexcept>
-#include <string>
 #include <iostream>
 #include <device_launch_parameters.h>
-#include <device_functions.h>
 
 #pragma once
 #ifdef __INTELLISENSE__
@@ -18,7 +15,6 @@ struct magma_keys {
 	unsigned int keys[8];
 };
 
-
 const __device__ unsigned char _swap_table[4][256] =
 {
 {24, 30, 18, 21, 22, 25, 17, 28, 31, 20, 27, 16, 29, 26, 19, 23, 120, 126, 114, 117, 118, 121, 113, 124, 127, 116, 123, 112, 125, 122, 115, 119, 232, 238, 226, 229, 230, 233, 225, 236, 239, 228, 235, 224, 237, 234, 227, 231, 216, 222, 210, 213, 214, 217, 209, 220, 223, 212, 219, 208, 221, 218, 211, 215, 8, 14, 2, 5, 6, 9, 1, 12, 15, 4, 11, 0, 13, 10, 3, 7, 88, 94, 82, 85, 86, 89, 81, 92, 95, 84, 91, 80, 93, 90, 83, 87, 136, 142, 130, 133, 134, 137, 129, 140, 143, 132, 139, 128, 141, 138, 131, 135, 56, 62, 50, 53, 54, 57, 49, 60, 63, 52, 59, 48, 61, 58, 51, 55, 72, 78, 66, 69, 70, 73, 65, 76, 79, 68, 75, 64, 77, 74, 67, 71, 248, 254, 242, 245, 246, 249, 241, 252, 255, 244, 251, 240, 253, 250, 243, 247, 168, 174, 162, 165, 166, 169, 161, 172, 175, 164, 171, 160, 173, 170, 163, 167, 104, 110, 98, 101, 102, 105, 97, 108, 111, 100, 107, 96, 109, 106, 99, 103, 152, 158, 146, 149, 150, 153, 145, 156, 159, 148, 155, 144, 157, 154, 147, 151, 200, 206, 194, 197, 198, 201, 193, 204, 207, 196, 203, 192, 205, 202, 195, 199, 184, 190, 178, 181, 182, 185, 177, 188, 191, 180, 187, 176, 189, 186, 179, 183, 40, 46, 34, 37, 38, 41, 33, 44, 47, 36, 43, 32, 45, 42, 35, 39},
@@ -27,7 +23,7 @@ const __device__ unsigned char _swap_table[4][256] =
 {108, 100, 102, 98, 106, 101, 107, 105, 110, 104, 109, 103, 96, 99, 111, 97, 140, 132, 134, 130, 138, 133, 139, 137, 142, 136, 141, 135, 128, 131, 143, 129, 44, 36, 38, 34, 42, 37, 43, 41, 46, 40, 45, 39, 32, 35, 47, 33, 60, 52, 54, 50, 58, 53, 59, 57, 62, 56, 61, 55, 48, 51, 63, 49, 156, 148, 150, 146, 154, 149, 155, 153, 158, 152, 157, 151, 144, 147, 159, 145, 172, 164, 166, 162, 170, 165, 171, 169, 174, 168, 173, 167, 160, 163, 175, 161, 92, 84, 86, 82, 90, 85, 91, 89, 94, 88, 93, 87, 80, 83, 95, 81, 204, 196, 198, 194, 202, 197, 203, 201, 206, 200, 205, 199, 192, 195, 207, 193, 28, 20, 22, 18, 26, 21, 27, 25, 30, 24, 29, 23, 16, 19, 31, 17, 236, 228, 230, 226, 234, 229, 235, 233, 238, 232, 237, 231, 224, 227, 239, 225, 76, 68, 70, 66, 74, 69, 75, 73, 78, 72, 77, 71, 64, 67, 79, 65, 124, 116, 118, 114, 122, 117, 123, 121, 126, 120, 125, 119, 112, 115, 127, 113, 188, 180, 182, 178, 186, 181, 187, 185, 190, 184, 189, 183, 176, 179, 191, 177, 220, 212, 214, 210, 218, 213, 219, 217, 222, 216, 221, 215, 208, 211, 223, 209, 12, 4, 6, 2, 10, 5, 11, 9, 14, 8, 13, 7, 0, 3, 15, 1, 252, 244, 246, 242, 250, 245, 251, 249, 254, 248, 253, 247, 240, 243, 255, 241},
 };
 
-__global__ void encrypt_kernel(magma::block* data, size_t n, magma_keys k) {
+extern "C" __global__ void encrypt_kernel(magma::block * data, size_t n, magma_keys k) {
 	auto tid = threadIdx.x + blockIdx.x * blockDim.x;
 	auto tcnt = blockDim.x * gridDim.x;
 
@@ -47,8 +43,6 @@ __global__ void encrypt_kernel(magma::block* data, size_t n, magma_keys k) {
 
 	for (int k = tid; k < n; k += tcnt)
 	{
-		/*if (threadIdx.x == 0 && blockIdx.x == 0)
-			printf("%llu", data[k].ull);*/
 		auto src = data[k];
 		for (int i = 0; i < 31; ++i)
 		{
@@ -80,7 +74,7 @@ __global__ void encrypt_kernel(magma::block* data, size_t n, magma_keys k) {
 	}
 };
 
-__global__ void decrypt_kernel(magma::block* data, size_t n, magma_keys k) {
+extern "C" __global__ void decrypt_kernel(magma::block * data, size_t n, magma_keys k) {
 	auto tid = threadIdx.x + blockIdx.x * blockDim.x;
 	auto tcnt = blockDim.x * gridDim.x;
 
@@ -100,8 +94,6 @@ __global__ void decrypt_kernel(magma::block* data, size_t n, magma_keys k) {
 
 	for (int k = tid; k < n; k += tcnt)
 	{
-		/*if (threadIdx.x == 0 && blockIdx.x == 0)
-			printf("%llu", data[k].ull);*/
 		auto src = data[k];
 		for (int i = 0; i < 31; ++i)
 		{
@@ -160,7 +152,15 @@ void magma_gpu::encrypt(block* buf, size_t size) const
 	check(cuMemcpy((CUdeviceptr)data, (CUdeviceptr)buf, size * sizeof(block)));
 	magma_keys k;
 	std::copy_n(this->keys, 8, k.keys);
-	encrypt_kernel << <10, 1024 >> > (data, size, k);
+
+	CUmodule module;
+	CUfunction function;
+
+	check(cuModuleLoad(&module, "\\x64\\Release\\magma_gpu.ptx"));
+	check(cuModuleGetFunction(&function, module, "encrypt_kernel"));
+
+	void* args[3] = { &data, &size, &k };
+	check(cuLaunchKernel(function, 10, 1, 1, 1024, 1, 1, 9000, 0, args, 0));
 	check(cuCtxSynchronize());
 	check(cuMemcpy((CUdeviceptr)buf, (CUdeviceptr)data, size * sizeof(block)));
 	check(cuMemFree((CUdeviceptr)data));
@@ -173,15 +173,33 @@ void magma_gpu::decrypt(block* buf, size_t size) const
 	check(cuMemcpy((CUdeviceptr)data, (CUdeviceptr)buf, size * sizeof(block)));
 	magma_keys k;
 	std::copy_n(this->keys, 8, k.keys);
-	decrypt_kernel << <10, 1024 >> > (data, size, k);
+
+	CUmodule module;
+	CUfunction function;
+
+	check(cuModuleLoad(&module, "\\x64\\Release\\magma_gpu.ptx"));
+	check(cuModuleGetFunction(&function, module, "decrypt_kernel"));
+
+	void* args[3] = { &data, &size, &k };
+	check(cuLaunchKernel(function, 10, 1, 1, 1024, 1, 1, 9000, 0, args, 0));
 	check(cuCtxSynchronize());
 	check(cuMemcpy((CUdeviceptr)buf, (CUdeviceptr)data, size * sizeof(block)));
 	check(cuMemFree((CUdeviceptr)data));
 }
 
+static CUcontext context;
+
 magma_gpu::magma_gpu(const std::array<unsigned int, 8>& key) : magma(key)
 {
-	void* t;
-	cudaMalloc(&t, 1);
-	cudaFree(t);
+	check(cuInit(0));
+
+	CUdevice device;
+	check(cuDeviceGet(&device, 0));
+
+	check(cuCtxCreate(&context, 0, device));
+}
+
+magma_gpu::~magma_gpu()
+{
+	check(cuCtxDestroy(context));
 }

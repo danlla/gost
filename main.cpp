@@ -207,7 +207,7 @@ void bench(const magma& m, size_t n, const std::unique_ptr<magma::block[]>& mess
 
 
 #pragma omp parallel for
-    for (int64_t i = 0; i < n; ++i)
+    for (int64_t i = 0; i < (int64_t)n; ++i)
     {
         if (message[i].ull != tmp[i].ull)
         {
@@ -231,7 +231,7 @@ void bench_kuz(const kuznechik& m, size_t n, const std::unique_ptr<kuznechik::bl
 
 
 #pragma omp parallel for
-    for (int64_t i = 0; i < n; ++i)
+    for (int64_t i = 0; i < (int64_t)n; ++i)
     {
         if (message[i].ull[0] != tmp[i].ull[0] || message[i].ull[1] != tmp[i].ull[1])
         {

@@ -1,6 +1,5 @@
 #include "kuznechik.cuh"
 #include <memory>
-#include <stdio.h>
 
 constexpr unsigned long long LS[16][256][2] =
 {
@@ -4179,7 +4178,7 @@ kuznechik::kuznechik(const std::array<unsigned int, 8>& key)
 void kuznechik::encrypt(block* buf, size_t n) const
 {
 #pragma omp parallel for
-	for (int64_t i = 0; i < n; ++i)
+	for (int64_t i = 0; i < (int64_t)n; ++i)
 		encrypt_block(buf[i], i);
 }
 
@@ -4191,7 +4190,8 @@ void set_key(kuznechik::block keys[10], const unsigned char key[32])
 	int i, j;
 	kuznechik::block c, x, y, z;
 
-	for (i = 0; i < 16; i++) {
+	for (i = 0; i < 16; i++)
+	{
 		x.c[i] = key[i];
 		y.c[i] = key[i + 16];
 	}
