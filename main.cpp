@@ -9,6 +9,7 @@
 #include <utility>
 #include "argparse.hpp"
 #include "enc_dec_file.h"
+#include "context.cuh"
 
 void bench(const magma& m, size_t n, const std::unique_ptr<magma::block[]>& message);
 
@@ -16,7 +17,7 @@ void bench_kuz(const kuznechik& m, size_t n, const std::unique_ptr<kuznechik::bl
 
 int main(int argc, char* argv[])
 {
-
+    CUcontext context = get_context();
 
     for (size_t i = 0; i < argc; ++i)
     {
