@@ -93,6 +93,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="context.cu" />
     <CudaCompile Include="kuznechik.cu" />
     <CudaCompile Include="kuznechik_gpu.cu" />
     <CudaCompile Include="magma.cu" />
@@ -100,6 +101,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="argparse.hpp" />
+    <ClInclude Include="check.hpp" />
+    <ClInclude Include="context.cuh" />
     <ClInclude Include="enc_dec_file.h" />
     <ClInclude Include="kuznechik.cuh" />
     <ClInclude Include="kuznechik_gpu.cuh" />
