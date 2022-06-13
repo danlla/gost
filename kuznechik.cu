@@ -4150,10 +4150,11 @@ void kuznechik::encrypt_block(block& src, int index) const
 	{
 		key.ull[0] += keys[j].ull[0];
 		key.ull[1] += keys[j].ull[1];
+		auto tmp = key;
 		for (int i = 0; i < 16; ++i)
 		{
-			key.ull[0] ^= LS[i][key.c[i]][0];
-			key.ull[1] ^= LS[i][key.c[i]][1];
+			key.ull[0] ^= LS[i][tmp.c[i]][0];
+			key.ull[1] ^= LS[i][tmp.c[i]][1];
 		}
 	}
 	src.ull[0] ^= key.ull[0];
