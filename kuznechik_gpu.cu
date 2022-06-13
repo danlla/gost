@@ -642,8 +642,8 @@ void kuznechik_gpu::encrypt(block* buf, size_t size) const
 	kuznechik_keys k;
 	for (int i = 0; i < 10; ++i)
 	{
-		k.block->ull[0] = this->keys->ull[0];
-		k.block->ull[1] = this->keys->ull[1];
+		k.block[i].ull[0] = keys[i].ull[0];
+		k.block[i].ull[1] = keys[i].ull[1];
 	}
 
 	CUmodule module;
