@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <device_launch_parameters.h>
+#include "check.hpp"
 
 #pragma once
 #ifdef __INTELLISENSE__
@@ -613,33 +614,25 @@ extern "C" __global__ void encrypt_kernel_kuz(kuznechik::block * data, size_t n,
 	}
 }
 
-static inline CUresult x_check(CUresult result, const char* file = "", int line = 0) {
-	if (result != cudaSuccess)
-	{
-		const char* err_str = (char*)malloc(256);
-		cuGetErrorString(result, &err_str);
-		if (*err_str == NULL)
-		{
-			std::cerr << "unknown error";
-			free((void*)err_str);
-			exit(EXIT_FAILURE);
-		}
-		std::cerr << file << " (line " << line << " ): " << err_str;
-		free((void*)err_str);
-		exit(EXIT_FAILURE);
-	}
-	return result;
-}
-
-#define check(x) x_check((x), __FILE__, __LINE__)
-
+static kuznechik_keys k;
+static CUfunction function;
 
 void kuznechik_gpu::encrypt(block* buf, size_t size) const
 {
 	block* data;
 	check(cuMemAlloc((CUdeviceptr*)&data, size * sizeof(block)));
 	check(cuMemcpy((CUdeviceptr)data, (CUdeviceptr)buf, size * sizeof(block)));
-	kuznechik_keys k;
+
+	void* args[3] = { &data, &size, &k };
+	check(cuLaunchKernel(function, 10, 1, 1, 1024, 1, 1, 9000, 0, args, 0));
+
+	check(cuCtxSynchronize());
+	check(cuMemcpy((CUdeviceptr)buf, (CUdeviceptr)data, size * sizeof(block)));
+	check(cuMemFree((CUdeviceptr)data));
+}
+
+kuznechik_gpu::kuznechik_gpu(const std::array<unsigned int, 8>& key) : kuznechik(key)
+{
 	for (int i = 0; i < 10; ++i)
 	{
 		k.block[i].ull[0] = keys[i].ull[0];
@@ -647,32 +640,7 @@ void kuznechik_gpu::encrypt(block* buf, size_t size) const
 	}
 
 	CUmodule module;
-	CUfunction function;
 
 	check(cuModuleLoad(&module, "\\x64\\Release\\kuznechik_gpu.ptx"));
 	check(cuModuleGetFunction(&function, module, "encrypt_kernel_kuz"));
-
-	void* args[3] = { &data, &size, &k };
-	check(cuLaunchKernel(function, 10, 1, 1, 1024, 1, 1, 9000, 0, args, 0));
-	check(cuCtxSynchronize());
-	check(cuMemcpy((CUdeviceptr)buf, (CUdeviceptr)data, size * sizeof(block)));
-	check(cuMemFree((CUdeviceptr)data));
-}
-
-static CUcontext context;
-
-kuznechik_gpu::kuznechik_gpu(const std::array<unsigned int, 8>& key) : kuznechik(key)
-{
-
-	check(cuInit(0));
-
-	CUdevice device;
-	check(cuDeviceGet(&device, 0));
-
-	check(cuCtxCreate(&context, 0, device));
-}
-
-kuznechik_gpu::~kuznechik_gpu()
-{
-	check(cuCtxDestroy(context));
 }
