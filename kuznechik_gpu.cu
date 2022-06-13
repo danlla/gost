@@ -593,8 +593,8 @@ extern "C" __global__ void encrypt_kernel_kuz(kuznechik::block * data, size_t n,
 		auto src = keys.block[k % 10];
 		for (int j = 0; j < 10; ++j)
 		{
-			src.ull[0] += keys.block[j].ull[0];
-			src.ull[1] += keys.block[j].ull[1];
+			src.ull[0] ^= keys.block[j].ull[0];
+			src.ull[1] ^= keys.block[j].ull[1];
 			auto tmp = src;
 			for (int i = 0; i < 16; ++i)
 			{

@@ -4148,8 +4148,8 @@ void kuznechik::encrypt_block(block& src, int index) const
 	auto key = keys[index % 10];
 	for (int j = 0; j < 10; ++j)
 	{
-		key.ull[0] += keys[j].ull[0];
-		key.ull[1] += keys[j].ull[1];
+		key.ull[0] ^= keys[j].ull[0];
+		key.ull[1] ^= keys[j].ull[1];
 		auto tmp = key;
 		for (int i = 0; i < 16; ++i)
 		{
