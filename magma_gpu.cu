@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <device_launch_parameters.h>
+#include "check.hpp"
 
 #pragma once
 #ifdef __INTELLISENSE__
@@ -125,25 +126,6 @@ extern "C" __global__ void decrypt_kernel(magma::block * data, size_t n, magma_k
 	}
 };
 
-static inline CUresult x_check(CUresult result, const char* file = "", int line = 0) {
-	if (result != cudaSuccess)
-	{
-		const char* err_str = (char*)malloc(256);
-		cuGetErrorString(result, &err_str);
-		if (&err_str == NULL)
-		{
-			std::cerr << "unknown error";
-			free((void*)err_str);
-			exit(EXIT_FAILURE);
-		}
-		std::cerr << file << " (line " << line << " ): " << err_str;
-		free((void*)err_str);
-		exit(EXIT_FAILURE);
-	}
-	return result;
-}
-
-#define check(x) x_check((x), __FILE__, __LINE__)
 
 void magma_gpu::encrypt(block* buf, size_t size) const
 {
@@ -166,40 +148,29 @@ void magma_gpu::encrypt(block* buf, size_t size) const
 	check(cuMemFree((CUdeviceptr)data));
 }
 
+static CUfunction function;
+static magma_keys k;
+
 void magma_gpu::decrypt(block* buf, size_t size) const
 {
 	block* data;
 	check(cuMemAlloc((CUdeviceptr*)&data, size * sizeof(block)));
 	check(cuMemcpy((CUdeviceptr)data, (CUdeviceptr)buf, size * sizeof(block)));
-	magma_keys k;
-	std::copy_n(this->keys, 8, k.keys);
-
-	CUmodule module;
-	CUfunction function;
-
-	check(cuModuleLoad(&module, "\\x64\\Release\\magma_gpu.ptx"));
-	check(cuModuleGetFunction(&function, module, "decrypt_kernel"));
-
+	
 	void* args[3] = { &data, &size, &k };
 	check(cuLaunchKernel(function, 10, 1, 1, 1024, 1, 1, 9000, 0, args, 0));
+
 	check(cuCtxSynchronize());
 	check(cuMemcpy((CUdeviceptr)buf, (CUdeviceptr)data, size * sizeof(block)));
 	check(cuMemFree((CUdeviceptr)data));
 }
 
-static CUcontext context;
-
 magma_gpu::magma_gpu(const std::array<unsigned int, 8>& key) : magma(key)
 {
-	check(cuInit(0));
+	std::copy_n(this->keys, 8, k.keys);
 
-	CUdevice device;
-	check(cuDeviceGet(&device, 0));
-
-	check(cuCtxCreate(&context, 0, device));
-}
-
-magma_gpu::~magma_gpu()
-{
-	check(cuCtxDestroy(context));
+	CUmodule module;
+	
+	check(cuModuleLoad(&module, "\\x64\\Release\\magma_gpu.ptx"));
+	check(cuModuleGetFunction(&function, module, "decrypt_kernel"));
 }
